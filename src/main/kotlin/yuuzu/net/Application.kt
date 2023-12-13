@@ -10,8 +10,13 @@ import yuuzu.net.plugins.*
 val config = HoconApplicationConfig(ConfigFactory.load("application.conf"))
 
 fun main() {
-    embeddedServer(Netty, port = config.port, host = config.host, module = Application::module)
-        .start(wait = true)
+    embeddedServer(
+        Netty,
+        port = config.port,
+        host = config.host,
+        watchPaths = config.property("ktor.deployment.watch").getList(),
+        module = Application::module
+    ).start(wait = true)
 }
 
 fun Application.module() {

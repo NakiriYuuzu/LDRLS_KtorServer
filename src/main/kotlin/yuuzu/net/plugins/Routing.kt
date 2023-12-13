@@ -6,15 +6,15 @@ import io.ktor.server.http.content.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.koin.java.KoinJavaComponent.inject
 import yuuzu.net.data.model.user.UserDataSource
-import yuuzu.net.route.createUser
+import yuuzu.net.route.signUp
 import yuuzu.net.security.hashing.SHA256HashingService
 import yuuzu.net.security.token.JwtTokenService
-import yuuzu.net.utils.logd
-import yuuzu.net.utils.loge
-import yuuzu.net.utils.logi
-import yuuzu.net.utils.logw
 
 fun Application.configureRouting() {
     install(StatusPages) {
@@ -32,15 +32,12 @@ fun Application.configureRouting() {
 
     routing {
         get("/") {
-            val result = "Nothing here yet!"
-            result.logi()
-            result.logd()
-            result.logw()
-            result.loge()
-            call.respondText("Nothing here yet!")
+            call.respondText("${Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())}")
         }
-        // public image files
+        // public image static files
         staticResources("images", "static/images")
-        createUser(hashingService, userDataSource)
+
+        // UserRoute
+        signUp(hashingService, userDataSource)
     }
 }
