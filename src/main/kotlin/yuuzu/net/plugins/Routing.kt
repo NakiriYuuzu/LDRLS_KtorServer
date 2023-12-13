@@ -12,7 +12,7 @@ import kotlinx.datetime.toLocalDateTime
 import org.koin.java.KoinJavaComponent.inject
 import yuuzu.net.data.model.user.UserDataSource
 import yuuzu.net.route.signIn
-import yuuzu.net.route.signUp
+import yuuzu.net.route.user
 import yuuzu.net.security.hashing.SHA256HashingService
 import yuuzu.net.security.token.JwtTokenService
 
@@ -38,7 +38,7 @@ fun Application.configureRouting() {
         staticResources("images", "static/images")
 
         // UserRoute
-        signUp(hashingService, userDataSource)
+        user(hashingService, userDataSource)
         signIn(tokenService, hashingService, userDataSource)
     }
 }

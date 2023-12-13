@@ -2,16 +2,16 @@ package yuuzu.net.route
 
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import yuuzu.net.common.JWTSetup
-import yuuzu.net.data.model.user.Grade
 import yuuzu.net.data.model.user.Identity
 import yuuzu.net.data.model.user.User
+import yuuzu.net.data.model.user.User.Companion.isValid
 import yuuzu.net.data.model.user.UserDataSource
 import yuuzu.net.data.request.LoginRequest
-import yuuzu.net.data.request.SignUpRequest
 import yuuzu.net.data.response.ApiResponse
 import yuuzu.net.data.response.LoginResponse
 import yuuzu.net.security.hashing.HashingService
@@ -19,45 +19,26 @@ import yuuzu.net.security.hashing.SaltedHash
 import yuuzu.net.security.token.TokenClaim
 import yuuzu.net.security.token.TokenService
 import yuuzu.net.utils.Results
+import yuuzu.net.utils.verifyJWToken
 
-fun Route.signUp(
+fun Route.user(
     hashingService: HashingService,
     userDataSource: UserDataSource
 ) {
-    post("/signup") {
-        val request = kotlin.runCatching { call.receiveNullable<SignUpRequest>() }.getOrNull() ?: kotlin.run {
-            call.respond(HttpStatusCode.BadRequest, ApiResponse("Body must include ${SignUpRequest.SAMPLE_JSON}"))
+    post("/user") {
+        val request = kotlin.runCatching { call.receiveNullable<User>() }.getOrNull() ?: kotlin.run {
+            call.respond(HttpStatusCode.BadRequest, ApiResponse("Please check your request body."))
             return@post
         }
 
-        val grade = Grade.entries.find { it.ordinal == request.grade } ?: kotlin.run {
-            call.respond(HttpStatusCode.BadRequest, ApiResponse("Grade must be 0 or 1"))
-            return@post
-        }
-
-        val areFieldsBlank = listOf(
-            request.name,
-            request.account,
-            request.password
-        ).any { it.isBlank() }
-
-        if (areFieldsBlank) {
-            call.respond(
-                HttpStatusCode.BadRequest,
-                ApiResponse("Please fill in all fields! ${SignUpRequest.SAMPLE_JSON}")
-            )
+        val (isValid, errorMessage) = request.isValid()
+        if (!isValid) {
+            call.respond(HttpStatusCode.BadRequest, ApiResponse(errorMessage))
             return@post
         }
 
         val passwordSalt = hashingService.generateSaltedHash(request.password)
-        val user = User(
-            name = request.name,
-            email = request.email,
-            grade = grade.ordinal,
-            phone = request.phone,
-            identity = Identity.OTHER.ordinal,
-            validator = true,
-            account = request.account,
+        val user = request.copy(
             password = passwordSalt.hash,
             salt = passwordSalt.salt
         )
@@ -78,6 +59,48 @@ fun Route.signUp(
             }
         }
     }
+    authenticate {
+        put("/user") {
+            when (val result = call.verifyJWToken(userDataSource)) {
+                is Results.Success -> {
+                    val request =
+                        kotlin.runCatching { call.receiveNullable<User>() }.getOrNull() ?: kotlin.run {
+                            call.respond(
+                                HttpStatusCode.BadRequest,
+                                ApiResponse("Please check your request body.")
+                            )
+                            return@put
+                        }
+
+
+                    when (result.data.identity) {
+                        Identity.ADMIN.ordinal -> {
+
+                        }
+                        else -> {
+                            call.respond(HttpStatusCode.Conflict, ApiResponse("Permission denied."))
+                        }
+                    }
+                }
+                is Results.Error -> call.respond(HttpStatusCode.Conflict, ApiResponse(result.message))
+            }
+        }
+        delete("/user") {
+            when (val result = call.verifyJWToken(userDataSource)) {
+                is Results.Success -> {
+                    val request =
+                        kotlin.runCatching { call.receiveNullable<User>() }.getOrNull() ?: kotlin.run {
+                            call.respond(
+                                HttpStatusCode.BadRequest,
+                                ApiResponse("Please check your request body.")
+                            )
+                            return@delete
+                        }
+                }
+                is Results.Error -> call.respond(HttpStatusCode.Conflict, ApiResponse(result.message))
+            }
+        }
+    }
 }
 
 fun Route.signIn(
@@ -87,7 +110,7 @@ fun Route.signIn(
 ) {
     post("/login") {
         val request = kotlin.runCatching { call.receiveNullable<LoginRequest>() }.getOrNull() ?: kotlin.run {
-            call.respond(HttpStatusCode.BadRequest, ApiResponse("Body must include ${LoginRequest.SAMPLE_JSON}"))
+            call.respond(HttpStatusCode.BadRequest, ApiResponse("Please check your request body."))
             return@post
         }
 

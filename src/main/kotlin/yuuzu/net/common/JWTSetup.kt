@@ -4,6 +4,7 @@ import yuuzu.net.config
 import yuuzu.net.security.token.TokenConfig
 
 object JWTSetup {
+    const val TOKEN_ID = "id"
     val tokenConfig = TokenConfig(
         issuer = config.property("jwt.issuer").getString(),
         audience = config.property("jwt.audience").getString(),
