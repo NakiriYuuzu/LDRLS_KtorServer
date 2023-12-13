@@ -7,11 +7,11 @@ import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.koin.java.KoinJavaComponent.inject
 import yuuzu.net.data.model.user.UserDataSource
+import yuuzu.net.route.signIn
 import yuuzu.net.route.signUp
 import yuuzu.net.security.hashing.SHA256HashingService
 import yuuzu.net.security.token.JwtTokenService
@@ -39,5 +39,6 @@ fun Application.configureRouting() {
 
         // UserRoute
         signUp(hashingService, userDataSource)
+        signIn(tokenService, hashingService, userDataSource)
     }
 }

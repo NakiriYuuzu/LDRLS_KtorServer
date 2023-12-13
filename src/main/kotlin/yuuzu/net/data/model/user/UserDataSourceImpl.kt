@@ -46,7 +46,7 @@ class UserDataSourceImpl(
                 .let { Results.Success(it) }
         } catch (e: Exception) {
             // 適當的錯誤處理
-            Results.Error("Failed to retrieve users.")
+            Results.Error("Failed to retrieve users.").also { e.message?.loge() }
         }
     }
 
@@ -58,9 +58,9 @@ class UserDataSourceImpl(
             }
         } catch (e: MongoWriteException) {
             if (e.error.code == 11000) {
-                Results.Error("User already exists. ${e.message}")
+                Results.Error("User already exists.").also { e.error.message.loge() }
             } else {
-                Results.Error(e.message ?: "Unknown error.".also { e.error.message.loge() })
+                Results.Error(e.message ?: "Unknown error.").also { e.error.message.loge() }
             }
         }
     }
@@ -71,7 +71,7 @@ class UserDataSourceImpl(
                 if (it) Results.Success(true) else Results.Error("Update user failed.")
             }
         } catch (e: MongoWriteException) {
-            Results.Error(e.message ?: "Unknown error.".also { e.error.message.loge() })
+            Results.Error(e.message ?: "Unknown error.").also { e.error.message.loge() }
         }
     }
 
@@ -82,7 +82,7 @@ class UserDataSourceImpl(
                 if (it) Results.Success(true) else Results.Error("Disable user failed.")
             }
         } catch (e: MongoWriteException) {
-            Results.Error(e.message ?: "Unknown error.".also { e.error.message.loge() })
+            Results.Error(e.message ?: "Unknown error.".also { e.error.message.loge() }).also { e.error.message.loge() }
         }
     }
 }
