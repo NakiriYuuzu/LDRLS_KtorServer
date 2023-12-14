@@ -43,7 +43,6 @@ data class User(
         if (account.isBlank()) return false to "account is blank"
         if (password.isBlank()) return false to "password is blank"
         if (password.length < 7) return false to "password length is less than 7"
-        println("Hello World.")
         return true to ""
     }
 }

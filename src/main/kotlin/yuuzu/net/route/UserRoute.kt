@@ -76,42 +76,78 @@ fun Route.user(
                         return@put
                     }
 
-                    val user: User
+                    when (val user = userDataSource.getUserById(request._id)) { // 取得要修改的帳號資料
+                        is Results.Success -> {
+                            val modifyUser: User
+                            if (user.data == null) {
+                                call.respond(HttpStatusCode.Conflict, ApiResponse("User not found."))
+                                return@put
+                            }
+                            if (token.data.verifyIdentity(Identity.ADMIN)) { // 判斷是否是Admin
+                                if (token.data._id == request._id) {
+                                    val password = hashingService.generateSaltedHash(request.password)
+                                    modifyUser = user.data.copy(
+                                        name = request.name,
+                                        email = request.email,
+                                        phone = request.phone,
+                                        grade = request.grade,
+                                        identity = request.identity,
+                                        validator = request.validator,
+                                        account = request.account,
+                                        password = password.hash,
+                                        salt = password.salt
+                                    )
+                                } else {
+                                    modifyUser = user.data.copy(
+                                        name = request.name,
+                                        email = request.email,
+                                        phone = request.phone,
+                                        grade = request.grade,
+                                        identity = request.identity,
+                                        validator = request.validator,
+                                        account = request.account
+                                    )
+                                }
+                            } else { // 如果不是Admin則只允許修改自己的資料但不包過權限
+                                if (token.data._id != request._id) { // 判斷是否是自己的資料
+                                    call.respond(
+                                        HttpStatusCode.Conflict, ApiResponse("You can't modify other user's data.")
+                                    )
+                                    return@put
+                                }
 
-                    if (token.data.verifyIdentity(Identity.ADMIN)) { // 判斷是否是Admin
-                        user = request.copy(
-                            _id = token.data._id, // 不允許修改ID)
-                        )
-                    } else { // 如果不是Admin則只允許修改自己的資料但不包過權限
-                        if (token.data._id != request._id) { // 判斷是否是自己的資料
-                            call.respond(
-                                HttpStatusCode.Conflict, ApiResponse("You can't modify other user's data.")
-                            )
-                            return@put
+                                val password = hashingService.generateSaltedHash(request.password)
+                                modifyUser = user.data.copy(
+                                    name = request.name,
+                                    email = request.email,
+                                    phone = request.phone,
+                                    grade = request.grade,
+                                    account = request.account,
+                                    password = password.hash,
+                                    salt = password.salt
+                                )
+                            }
+
+                            val wasAcknowledged = userDataSource.updateUser(modifyUser)
+                            wasAcknowledged.let { results ->
+                                when (results) {
+                                    is Results.Success -> {
+                                        if (results.data) call.respond(
+                                            HttpStatusCode.OK, ApiResponse("success", true)
+                                        )
+                                        else call.respond(HttpStatusCode.Conflict, ApiResponse("Update failed."))
+                                    }
+
+                                    is Results.Error -> {
+                                        call.respond(HttpStatusCode.Conflict, ApiResponse(results.message))
+                                    }
+                                }
+                            }
                         }
 
-                        val password = hashingService.generateSaltedHash(request.password)
-                        user = request.copy(
-                            _id = token.data._id, // 不允許修改ID
-                            identity = token.data.identity, // 不允許修改權限
-                            password = password.hash,
-                            salt = password.salt
-                        )
-                    }
-
-                    val wasAcknowledged = userDataSource.updateUser(user)
-                    wasAcknowledged.let { results ->
-                        when (results) {
-                            is Results.Success -> {
-                                if (results.data) call.respond(
-                                    HttpStatusCode.OK, ApiResponse("success", true)
-                                )
-                                else call.respond(HttpStatusCode.Conflict, ApiResponse("Update failed."))
-                            }
-
-                            is Results.Error -> {
-                                call.respond(HttpStatusCode.Conflict, ApiResponse(results.message))
-                            }
+                        is Results.Error -> {
+                            call.respond(HttpStatusCode.Conflict, ApiResponse(user.message))
+                            return@put
                         }
                     }
                 }
