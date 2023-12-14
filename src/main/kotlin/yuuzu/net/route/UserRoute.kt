@@ -60,6 +60,21 @@ fun Route.user(
         }
     }
     authenticate {
+        get("/user") {
+            when (val result = call.verifyJWToken(userDataSource, Identity.ADMIN)) {
+                is Results.Success -> {
+                    when (val usersResult = userDataSource.getUsers(1, 10)) {
+                        is Results.Success -> {
+                            call.respond(HttpStatusCode.OK, ApiResponse(mapOf("message" to usersResult.data), true))
+                        }
+
+                        is Results.Error -> call.respond(HttpStatusCode.Conflict, ApiResponse(usersResult.message))
+                    }
+                }
+
+                is Results.Error -> call.respond(HttpStatusCode.Conflict, ApiResponse(result.message))
+            }
+        }
         put("/user") {
             when (val result = call.verifyJWToken(userDataSource)) {
                 is Results.Success -> {
@@ -77,11 +92,13 @@ fun Route.user(
                         Identity.ADMIN.ordinal -> {
 
                         }
+
                         else -> {
                             call.respond(HttpStatusCode.Conflict, ApiResponse("Permission denied."))
                         }
                     }
                 }
+
                 is Results.Error -> call.respond(HttpStatusCode.Conflict, ApiResponse(result.message))
             }
         }
@@ -97,6 +114,7 @@ fun Route.user(
                             return@delete
                         }
                 }
+
                 is Results.Error -> call.respond(HttpStatusCode.Conflict, ApiResponse(result.message))
             }
         }
@@ -140,8 +158,7 @@ fun Route.signIn(
                         value = user.data._id
                     )
                 )
-
-                call.respond(HttpStatusCode.OK, ApiResponse(LoginResponse(token), true))
+                call.respond(HttpStatusCode.OK, ApiResponse(mapOf("token" to token), true))
             }
 
             is Results.Error -> {
