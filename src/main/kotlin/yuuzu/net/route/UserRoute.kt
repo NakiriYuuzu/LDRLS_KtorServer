@@ -79,7 +79,9 @@ fun Route.user(
                     val user: User
 
                     if (token.data.verifyIdentity(Identity.ADMIN)) { // 判斷是否是Admin
-                        user = request
+                        user = request.copy(
+                            _id = token.data._id, // 不允許修改ID)
+                        )
                     } else { // 如果不是Admin則只允許修改自己的資料但不包過權限
                         if (token.data._id != request._id) { // 判斷是否是自己的資料
                             call.respond(
