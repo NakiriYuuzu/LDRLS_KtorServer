@@ -9,5 +9,5 @@ interface UserDataSource {
     suspend fun getUsers(page: Int, limit: Int): Results<List<User>>
     suspend fun insertUser(user: User): Results<Boolean>
     suspend fun updateUser(user: User): Results<Boolean>
-    suspend fun disableUser(user: User): Results<Boolean>
+    suspend fun disableUser(id: String): Results<Boolean>
 }

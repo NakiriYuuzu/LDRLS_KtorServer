@@ -2,6 +2,7 @@ package yuuzu.net.data.model.user
 
 import com.mongodb.MongoWriteException
 import com.mongodb.client.model.Filters
+import com.mongodb.client.model.Updates
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.toList
@@ -75,10 +76,11 @@ class UserDataSourceImpl(
         }
     }
 
-    override suspend fun disableUser(user: User): Results<Boolean> {
+    override suspend fun disableUser(id: String): Results<Boolean> {
         return try {
-            val newUser = user.copy(validator = false)
-            collection.replaceOne(Filters.eq(User::_id.name, user._id), newUser).wasAcknowledged().let {
+            collection.updateOne(
+                Filters.eq(User::_id.name, id), Updates.set(User::validator.name, false)
+            ).wasAcknowledged().let {
                 if (it) Results.Success(true) else Results.Error("Disable user failed.")
             }
         } catch (e: MongoWriteException) {
