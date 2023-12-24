@@ -223,6 +223,17 @@ fun Route.signIn(
     hashingService: HashingService,
     userDataSource: UserDataSource,
 ) {
+    authenticate {
+        get("/login") {
+            when (val token = call.verifyJWToken(userDataSource)) {
+                is Results.Success -> {
+                    call.respond(HttpStatusCode.OK, ApiResponse(token.data, true))
+                }
+
+                is Results.Error -> call.respond(HttpStatusCode.Conflict, ApiResponse(token.message))
+            }
+        }
+    }
     post("/login") {
         val request = kotlin.runCatching { call.receiveNullable<LoginRequest>() }.getOrNull() ?: kotlin.run {
             call.respond(HttpStatusCode.BadRequest, ApiResponse("Please check your request body."))

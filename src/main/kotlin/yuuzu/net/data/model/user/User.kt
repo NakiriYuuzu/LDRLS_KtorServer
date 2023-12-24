@@ -41,7 +41,6 @@ data class User(
         if (Grade.entries.find { it.ordinal == grade } == null) return false to "grade value must be 0 ~ ${Grade.entries.size - 1}"
         if (phone.isBlank()) return false to "phone is blank"
         if (phone.length != 10) return false to "phone length is not 10"
-        if (phone.toIntOrNull() == null) return false to "phone is not number"
         if (account.isBlank()) return false to "account is blank"
         if (password.isBlank()) return false to "password is blank"
         if (password.length < 7) return false to "password length is less than 7"
