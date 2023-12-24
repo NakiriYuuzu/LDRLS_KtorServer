@@ -12,6 +12,8 @@ data class User(
     val email: String,
     val grade: Int,
     val phone: String,
+//    val image: String = "",
+//    val cardNumber: String = "",
     val identity: Int = Identity.OTHER.ordinal,
     val validator: Boolean = true,
     val account: String,

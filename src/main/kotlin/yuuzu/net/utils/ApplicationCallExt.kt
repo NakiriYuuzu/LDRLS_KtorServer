@@ -16,11 +16,14 @@ interface Validatable {
 
 suspend inline fun <reified T : Validatable> ApplicationCall.receiveAndValidate(): Pair<T?, String> {
     val request = kotlin.runCatching { receiveNullable<T>() }.getOrNull()
+    request.toString().logd()
     if (request == null) {
         return null to "Please check your request body."
     }
 
     val (isValid, errorMessage) = request.isValid()
+    isValid.toString().logd()
+    errorMessage.logd()
     if (!isValid) {
         return null to errorMessage
     }

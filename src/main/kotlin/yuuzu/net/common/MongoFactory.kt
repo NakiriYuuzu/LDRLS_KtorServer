@@ -1,31 +1,38 @@
 package yuuzu.net.common
 
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.LoggerContext
 import com.mongodb.client.model.IndexOptions
 import com.mongodb.client.model.Indexes
 import com.mongodb.kotlin.client.coroutine.MongoClient
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
-import yuuzu.net.config
-import yuuzu.net.data.model.lending.Lending
-import yuuzu.net.data.model.room.Room
+import org.slf4j.LoggerFactory
 import yuuzu.net.data.model.user.Grade
 import yuuzu.net.data.model.user.Identity
 import yuuzu.net.data.model.user.User
 import yuuzu.net.security.hashing.SHA256HashingService
+import yuuzu.net.utils.logi
 
 object MongoFactory {
     private val uri = System.getenv("MONGO_URI") ?: "mongodb://localhost:27017"
     private var isInitialized = false
-    val mongoClient = MongoClient.create(uri)
+    private val mongoClient = MongoClient.create(uri)
 
     fun connectDatabase(): MongoDatabase {
+        // Disable MongoDB logging
+        val loggerContext = LoggerFactory.getILoggerFactory() as LoggerContext
+        val rootLogger = loggerContext.getLogger("org.mongodb.driver")
+        rootLogger.level = Level.ERROR
+
         val database = mongoClient.getDatabase(System.getenv("MONGO_DB") ?: "LDRLS_DB")
         if (!isInitialized) {
             isInitialized = true
             runBlocking { initializeDatabase(database) }
-
         }
+
+        database.name.logi()
         return database
     }
 

@@ -35,14 +35,14 @@ class UserDataSourceImpl(
         return Results.Error("User not found.")
     }
 
-    override suspend fun getUsers(page: Int, limit: Int): Results<List<User>> {
-        val skip = (page - 1) * limit
+    override suspend fun getUsers(): Results<List<User>> {
+//        val skip = (page - 1) * limit
 
         // 如果要只要顯示特定的欄位，可以使用 projection ex: .projection(Projections.include(User::name.name, User::...))
         return try {
             collection.find()
-                .skip(skip)
-                .limit(limit)
+//                .skip(skip)
+//                .limit(limit)
                 .toList()
                 .let { Results.Success(it) }
         } catch (e: Exception) {

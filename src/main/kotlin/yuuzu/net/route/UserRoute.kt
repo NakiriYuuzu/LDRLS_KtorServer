@@ -6,6 +6,7 @@ import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.bson.types.ObjectId
 import yuuzu.net.common.JWTSetup
 import yuuzu.net.data.model.user.Identity
 import yuuzu.net.data.model.user.User
@@ -17,9 +18,7 @@ import yuuzu.net.security.hashing.HashingService
 import yuuzu.net.security.hashing.SaltedHash
 import yuuzu.net.security.token.TokenClaim
 import yuuzu.net.security.token.TokenService
-import yuuzu.net.utils.Results
-import yuuzu.net.utils.receiveAndValidate
-import yuuzu.net.utils.verifyJWToken
+import yuuzu.net.utils.*
 
 fun Route.user(
     hashingService: HashingService,
@@ -28,16 +27,38 @@ fun Route.user(
     post("/user") {
         val (request, errorMessage) = call.receiveAndValidate<User>()
         if (request == null) {
+            errorMessage.logd()
             call.respond(HttpStatusCode.BadRequest, ApiResponse(errorMessage))
             return@post
         }
 
-        val passwordSalt = hashingService.generateSaltedHash(request.password)
-        val user = request.copy(
-            password = passwordSalt.hash, salt = passwordSalt.salt
-        )
+        val userSize = userDataSource.getUsers().let { results ->
+            when (results) {
+                is Results.Success -> results.data.size
+                is Results.Error -> 0
+            }
+        }
 
-        val wasAcknowledged = userDataSource.insertUser(user)
+        var newUser = if (userSize == 0) {
+            request.copy(
+                _id = ObjectId.get().toString(),
+                identity = Identity.ADMIN.ordinal,
+                validator = true
+            )
+        } else {
+            request.copy(
+                _id = ObjectId.get().toString(),
+                identity = Identity.OTHER.ordinal,
+                validator = true
+            )
+        }
+
+        val passwordSalt = hashingService.generateSaltedHash(request.password)
+        newUser = newUser.copy(
+            password = passwordSalt.hash,
+            salt = passwordSalt.salt
+        )
+        val wasAcknowledged = userDataSource.insertUser(newUser)
         wasAcknowledged.let { results ->
             when (results) {
                 is Results.Success -> {
@@ -55,7 +76,7 @@ fun Route.user(
         get("/user") {
             when (val result = call.verifyJWToken(userDataSource, Identity.ADMIN)) {
                 is Results.Success -> {
-                    when (val usersResult = userDataSource.getUsers(1, 10)) {
+                    when (val usersResult = userDataSource.getUsers()) {
                         is Results.Success -> {
                             call.respond(HttpStatusCode.OK, ApiResponse(usersResult.data, true))
                         }
