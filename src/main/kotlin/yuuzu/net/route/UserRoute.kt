@@ -28,7 +28,6 @@ fun Route.user(
     post("/user") {
         val (request, errorMessage) = call.receiveAndValidate<User>()
         if (request == null) {
-            errorMessage.logd()
             call.respond(HttpStatusCode.BadRequest, ApiResponse(errorMessage))
             return@post
         }
@@ -75,8 +74,16 @@ fun Route.user(
     }
     authenticate {
         get("/user") {
-            when (val result = call.verifyJWToken(userDataSource, Identity.ADMIN)) {
-                is Results.Success -> {
+            val request = call.request.rawQueryParameters
+            when (val result = call.verifyJWToken(userDataSource, Identity.ADMIN)) { /** 驗證Admin身份 */
+                is Results.Success -> { /** 開始實現内容 */
+                    val id = request["id"]
+                    if (id != null) {
+                        when (val userResult = userDataSource.getUserById(id)) {
+                            is Results.Error -> call.respond(HttpStatusCode.BadRequest, ApiResponse(userResult.message))
+                            is Results.Success -> call.respond(HttpStatusCode.OK, ApiResponse(userResult.data, true))
+                        }
+                    }
                     when (val usersResult = userDataSource.getUsers()) {
                         is Results.Success -> {
                             call.respond(HttpStatusCode.OK, ApiResponse(usersResult.data, true))

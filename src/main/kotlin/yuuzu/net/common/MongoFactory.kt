@@ -9,6 +9,7 @@ import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
+import yuuzu.net.data.model.room.Room
 import yuuzu.net.data.model.user.Grade
 import yuuzu.net.data.model.user.Identity
 import yuuzu.net.data.model.user.User
@@ -60,6 +61,10 @@ object MongoFactory {
         database.getCollection<User>(User.TABLE_NAME).apply {
             createIndex(Indexes.ascending(User::account.name), IndexOptions().unique(true))
             createIndex(Indexes.ascending(User::email.name), IndexOptions().unique(true))
+        }
+
+        database.getCollection<Room>(Room.TABLE_NAME).apply {
+            createIndex(Indexes.ascending(Room::name.name), IndexOptions().unique(true))
         }
     }
 }
