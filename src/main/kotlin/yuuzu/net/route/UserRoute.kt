@@ -14,6 +14,7 @@ import yuuzu.net.data.model.user.User.Companion.verifyIdentity
 import yuuzu.net.data.model.user.UserDataSource
 import yuuzu.net.data.request.LoginRequest
 import yuuzu.net.data.response.ApiResponse
+import yuuzu.net.data.response.LoginResponse
 import yuuzu.net.security.hashing.HashingService
 import yuuzu.net.security.hashing.SaltedHash
 import yuuzu.net.security.token.TokenClaim
@@ -230,6 +231,17 @@ fun Route.signIn(
     hashingService: HashingService,
     userDataSource: UserDataSource,
 ) {
+    authenticate {
+        get("/login") {
+            when (val token = call.verifyJWToken(userDataSource)) {
+                is Results.Success -> {
+                    call.respond(HttpStatusCode.OK, ApiResponse(token.data, true))
+                }
+
+                is Results.Error -> call.respond(HttpStatusCode.Conflict, ApiResponse(token.message))
+            }
+        }
+    }
     post("/login") {
         val request = kotlin.runCatching { call.receiveNullable<LoginRequest>() }.getOrNull() ?: kotlin.run {
             call.respond(HttpStatusCode.BadRequest, ApiResponse("Please check your request body."))
@@ -258,7 +270,13 @@ fun Route.signIn(
                         name = "id", value = user.data._id
                     )
                 )
-                call.respond(HttpStatusCode.OK, ApiResponse(mapOf("token" to token), true))
+                call.respond(HttpStatusCode.OK, ApiResponse(
+                    LoginResponse(
+                        token = token,
+                        name = user.data.name,
+                        identity = user.data.identity,
+                    ), true)
+                )
             }
 
             is Results.Error -> {
