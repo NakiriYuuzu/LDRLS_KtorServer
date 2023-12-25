@@ -14,6 +14,7 @@ import yuuzu.net.data.model.user.User.Companion.verifyIdentity
 import yuuzu.net.data.model.user.UserDataSource
 import yuuzu.net.data.request.LoginRequest
 import yuuzu.net.data.response.ApiResponse
+import yuuzu.net.data.response.LoginResponse
 import yuuzu.net.security.hashing.HashingService
 import yuuzu.net.security.hashing.SaltedHash
 import yuuzu.net.security.token.TokenClaim
@@ -262,7 +263,13 @@ fun Route.signIn(
                         name = "id", value = user.data._id
                     )
                 )
-                call.respond(HttpStatusCode.OK, ApiResponse(mapOf("token" to token), true))
+                call.respond(HttpStatusCode.OK, ApiResponse(
+                    LoginResponse(
+                        token = token,
+                        name = user.data.name,
+                        identity = user.data.identity,
+                    ), true)
+                )
             }
 
             is Results.Error -> {
