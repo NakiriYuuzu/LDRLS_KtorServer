@@ -10,7 +10,9 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.koin.java.KoinJavaComponent.inject
+import yuuzu.net.data.model.room.RoomDataSource
 import yuuzu.net.data.model.user.UserDataSource
+import yuuzu.net.route.room
 import yuuzu.net.route.signIn
 import yuuzu.net.route.user
 import yuuzu.net.security.hashing.SHA256HashingService
@@ -29,6 +31,7 @@ fun Application.configureRouting() {
 
     // data source field
     val userDataSource: UserDataSource by inject(UserDataSource::class.java)
+    val roomDataSource: RoomDataSource by inject(RoomDataSource::class.java)
 
     routing {
         get("/") {
@@ -40,5 +43,8 @@ fun Application.configureRouting() {
         // UserRoute
         user(hashingService, userDataSource)
         signIn(tokenService, hashingService, userDataSource)
+
+        // RoomRoute
+        room(roomDataSource,userDataSource)
     }
 }
